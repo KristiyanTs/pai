@@ -37,12 +37,20 @@ class RealtimeAIClient:
         self.conversation_active = False
         self.conversation_ending = False  # Flag to prevent multiple endings
         
-        # WebSocket URL for OpenAI Realtime API
-        self.ws_url = "wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01"
+        # WebSocket URL for OpenAI Realtime API - voice will be set dynamically
+        self.base_ws_url = "wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01"
+        self.ws_url = self.base_ws_url
     
     def connect(self):
         """Connect to OpenAI Realtime API via WebSocket"""
         try:
+            # Get selected voice speaker from settings
+            selected_speaker = self.settings_manager.get_setting('voice_speaker', 'alloy')
+            
+            # Set voice parameter in WebSocket URL
+            self.ws_url = f"{self.base_ws_url}&voice={selected_speaker}"
+            print(f"Using voice speaker: {selected_speaker}")
+            
             # Create WebSocket with authorization header
             self.ws = websocket.WebSocketApp(
                 self.ws_url,

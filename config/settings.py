@@ -21,7 +21,8 @@ class SettingsManager:
             "custom_instructions": "",
             "voice_activation_enabled": True,
             "hotkey_combo": "cmd+shift+v",
-            "settings_hotkey_combo": "cmd+shift+z"
+            "settings_hotkey_combo": "cmd+shift+z",
+            "voice_speaker": "alloy"
         }
         self.settings = self.load_settings()
     

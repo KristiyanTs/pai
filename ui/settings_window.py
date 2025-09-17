@@ -191,7 +191,7 @@ class SettingsWindow:
             "Additional instructions (optional)",
             height=2
         )
-        self.custom_instructions_text.pack(fill='x', pady=(0, 8))
+        self.custom_instructions_text.pack(fill='x', pady=(0, 12))
         
         # Load existing value
         current_instructions = self.settings_manager.get_setting('custom_instructions', '')
@@ -199,6 +199,66 @@ class SettingsWindow:
             self.custom_instructions_text.delete('1.0', tk.END)
             self.custom_instructions_text.insert('1.0', current_instructions)
             self.custom_instructions_text.config(fg='#ffffff')
+        
+        # Voice speaker selection
+        speaker_frame = tk.Frame(section_frame, bg='#0f0f0f')
+        speaker_frame.pack(fill='x', pady=(0, 12))
+        
+        speaker_label = tk.Label(
+            speaker_frame,
+            text="Voice Speaker:",
+            font=('Inter', 11),
+            fg='#ffffff',
+            bg='#0f0f0f'
+        )
+        speaker_label.pack(anchor='w', pady=(0, 4))
+        
+        # Available speakers according to OpenAI documentation
+        self.speakers = [
+            ("alloy", "Alloy - Neutral and balanced"),
+            ("ash", "Ash - Clear and precise"),
+            ("ballad", "Ballad - Melodic and smooth"),
+            ("coral", "Coral - Warm and friendly"),
+            ("echo", "Echo - Resonant and deep"),
+            ("sage", "Sage - Calm and thoughtful"),
+            ("shimmer", "Shimmer - Bright and energetic"),
+            ("verse", "Verse - Versatile and expressive")
+        ]
+        
+        self.speaker_var = tk.StringVar()
+        current_speaker = self.settings_manager.get_setting('voice_speaker', 'alloy')
+        self.speaker_var.set(current_speaker)
+        
+        speaker_combo = ttk.Combobox(
+            speaker_frame,
+            textvariable=self.speaker_var,
+            values=[speaker[1] for speaker in self.speakers],
+            state="readonly",
+            font=('Inter', 10),
+            width=40
+        )
+        
+        # Set the current selection properly
+        for i, (speaker_id, speaker_name) in enumerate(self.speakers):
+            if speaker_id == current_speaker:
+                speaker_combo.current(i)
+                break
+        
+        speaker_combo.pack(anchor='w')
+        
+        # Style the combobox for dark theme
+        style = ttk.Style()
+        style.theme_use('default')
+        style.configure('TCombobox',
+                       fieldbackground='#1c1c1e',
+                       background='#1c1c1e',
+                       foreground='#ffffff',
+                       borderwidth=1,
+                       relief='flat')
+        style.map('TCombobox',
+                 fieldbackground=[('readonly', '#1c1c1e')],
+                 selectbackground=[('readonly', '#1c1c1e')],
+                 selectforeground=[('readonly', '#ffffff')])
         
         # Voice activation toggle
         self.voice_activation_var = tk.BooleanVar()
@@ -224,9 +284,35 @@ class SettingsWindow:
         button_frame = tk.Frame(parent, bg='#0f0f0f')
         button_frame.pack(fill='x', pady=(12, 0))
         
+        # Left side buttons
+        left_buttons = tk.Frame(button_frame, bg='#0f0f0f')
+        left_buttons.pack(side='left')
+        
+        # Reset to defaults button
+        reset_button = tk.Button(
+            left_buttons,
+            text="🔄 Reset to Defaults",
+            command=self.reset_to_defaults,
+            font=('Inter', 10),
+            fg='#8e8e93',
+            bg='#1c1c1e',
+            activebackground='#2c2c2e',
+            activeforeground='#ffffff',
+            relief='flat',
+            bd=0,
+            padx=12,
+            pady=4,
+            cursor='pointinghand'
+        )
+        reset_button.pack(side='left')
+        
+        # Right side buttons
+        right_buttons = tk.Frame(button_frame, bg='#0f0f0f')
+        right_buttons.pack(side='right')
+        
         # Save button (primary) with emoji
         save_button = tk.Button(
-            button_frame,
+            right_buttons,
             text="💾 Save",
             command=self.save_settings,
             font=('Inter', 10, 'bold'),
@@ -244,7 +330,7 @@ class SettingsWindow:
         
         # Cancel button (secondary) - minimal
         cancel_button = tk.Button(
-            button_frame,
+            right_buttons,
             text="Cancel",
             command=self.cancel,
             font=('Inter', 10),
@@ -276,10 +362,19 @@ class SettingsWindow:
             personality_value = self._get_text_value(self.personality_text)
             instructions_value = self._get_text_value(self.custom_instructions_text)
             
+            # Get selected speaker ID from the combobox
+            selected_speaker_name = self.speaker_var.get()
+            selected_speaker_id = 'alloy'  # Default fallback
+            for speaker_id, speaker_name in self.speakers:
+                if speaker_name == selected_speaker_name:
+                    selected_speaker_id = speaker_id
+                    break
+            
             self.settings_manager.set_setting('ai_context', context_value)
             self.settings_manager.set_setting('ai_personality', personality_value)
             self.settings_manager.set_setting('custom_instructions', instructions_value)
             self.settings_manager.set_setting('voice_activation_enabled', self.voice_activation_var.get())
+            self.settings_manager.set_setting('voice_speaker', selected_speaker_id)
             
             # Save to file
             if self.settings_manager.save_settings():
@@ -313,6 +408,13 @@ class SettingsWindow:
         self._reset_text_field(self.custom_instructions_text, self.settings_manager.default_settings['custom_instructions'])
         
         self.voice_activation_var.set(self.settings_manager.default_settings['voice_activation_enabled'])
+        
+        # Reset speaker to default
+        default_speaker = self.settings_manager.default_settings['voice_speaker']
+        for i, (speaker_id, speaker_name) in enumerate(self.speakers):
+            if speaker_id == default_speaker:
+                self.speaker_var.set(speaker_name)
+                break
     
     def show(self):
         """Show the settings window"""
