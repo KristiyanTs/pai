@@ -108,12 +108,18 @@ class AIVoiceAssistant:
     def show_settings(self):
         """Show the settings window"""
         try:
-            if self.settings_window is None or not hasattr(self.settings_window, 'window') or not self.settings_window.window.winfo_exists():
-                # Create new settings window
-                self.settings_window = SettingsWindow(self.settings_manager, self.overlay.root)
-            else:
-                # Show existing window
-                self.settings_window.show()
+            # Always create a new settings window to ensure proper focus behavior
+            # Close existing window if it exists
+            if self.settings_window and hasattr(self.settings_window, 'window'):
+                try:
+                    if self.settings_window.window.winfo_exists():
+                        self.settings_window.window.destroy()
+                except Exception:
+                    pass
+            
+            # Create new settings window (without parent to ensure proper focus)
+            self.settings_window = SettingsWindow(self.settings_manager, None)
+            
         except Exception as e:
             print(f"Error opening settings window: {e}")
     
