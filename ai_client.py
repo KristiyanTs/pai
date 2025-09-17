@@ -142,8 +142,6 @@ class RealtimeAIClient:
             }
         }
         
-        print(f"Using AI instructions: {custom_instructions[:100]}..." if len(custom_instructions) > 100 else f"Using AI instructions: {custom_instructions}")
-        print(f"Sending session config: {json.dumps(session_config, indent=2)}")
         self.ws.send(json.dumps(session_config))
     
     def _on_message(self, ws, message):
@@ -162,15 +160,12 @@ class RealtimeAIClient:
                 print("Session updated successfully")
                 
             elif event_type == "input_audio_buffer.speech_started":
-                print("Speech detected")
                 self.overlay.update_status('listening')
                 
             elif event_type == "input_audio_buffer.speech_stopped":
-                print("Speech ended")
                 self.overlay.update_status('processing')
                 
             elif event_type == "response.created":
-                print("AI response started")
                 # Stop recording when AI starts speaking to prevent feedback loop
                 self.audio_manager.stop_recording()
                 
@@ -180,7 +175,6 @@ class RealtimeAIClient:
                 if audio_b64:
                     try:
                         audio_bytes = base64.b64decode(audio_b64)
-                        print(f"DEBUG: Received {len(audio_bytes)} bytes of audio")
                         self.audio_manager.play_audio_data(audio_bytes)
                         self.overlay.update_status('speaking')
                     except Exception as e:
@@ -204,7 +198,6 @@ class RealtimeAIClient:
                     print(f"AI transcript: {transcript}")
                     
             elif event_type == "response.done":
-                print("AI response completed")
                 # Mark response as finished and start checking for audio completion
                 self.audio_manager.response_finished = True
                 if not self.conversation_ending and self.conversation_active:
@@ -268,7 +261,6 @@ class RealtimeAIClient:
         # Start sending audio data
         threading.Thread(target=self._send_audio_loop, daemon=True).start()
         
-        print("Conversation started")
         return True
     
     def _send_audio_loop(self):
@@ -316,7 +308,6 @@ class RealtimeAIClient:
         self.conversation_ending = True
         self.conversation_active = False
         
-        print("Ending conversation...")
         
         # Stop audio
         self.audio_manager.stop_recording()
@@ -328,7 +319,6 @@ class RealtimeAIClient:
         # Hide overlay (thread-safe)
         self.overlay.hide_overlay()
         
-        print("Conversation ended")
         
         # Reset ending flag after a delay
         threading.Timer(1.0, lambda: setattr(self, 'conversation_ending', False)).start()

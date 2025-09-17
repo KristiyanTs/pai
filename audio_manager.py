@@ -59,7 +59,6 @@ class AudioManager:
                 blocksize=self.chunk_size
             )
             self.input_stream.start()
-            print("Started audio recording")
         except Exception as e:
             print(f"Error starting audio recording: {e}")
             self.recording = False
@@ -71,7 +70,6 @@ class AudioManager:
             self.input_stream.stop()
             self.input_stream.close()
             self.input_stream = None
-        print("Stopped audio recording")
     
     def start_playback(self):
         """Start audio playback thread"""
@@ -140,7 +138,6 @@ class AudioManager:
                     self.output_stream = None
         
         threading.Thread(target=playback_thread, daemon=True).start()
-        print("Started audio playback")
     
     def stop_playback(self):
         """Stop audio playback"""
@@ -154,7 +151,6 @@ class AudioManager:
                 self.output_queue.get_nowait()
             except Empty:
                 break
-        print("Stopped audio playback")
     
     def get_audio_data(self):
         """Get recorded audio data from queue"""

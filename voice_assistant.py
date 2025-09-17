@@ -90,7 +90,6 @@ class AIVoiceAssistant:
             print("Conversation already in progress")
             return
         
-        print("Hotkey pressed - starting conversation")
         self.conversation_in_progress = True
         
         # Run conversation in separate thread
@@ -98,7 +97,6 @@ class AIVoiceAssistant:
     
     def on_settings_hotkey_pressed(self):
         """Handle settings hotkey press (Cmd+Shift+Z)"""
-        print("Settings hotkey pressed - opening settings")
         # Queue the settings window opening for the main thread
         self.gui_queue.put('show_settings')
     

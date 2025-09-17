@@ -144,7 +144,6 @@ class HotkeyManager:
     
     def _on_voice_hotkey_pressed(self):
         """Handle voice hotkey press (Cmd+Shift+V)"""
-        print("Voice hotkey pressed - starting conversation")
         self.voice_callback()
     
     def _on_settings_hotkey_pressed(self):
@@ -154,7 +153,6 @@ class HotkeyManager:
             return  # Ignore if too soon after last press
         
         self.last_settings_hotkey_time = current_time
-        print("Settings hotkey pressed - opening settings")
         self.settings_callback()
     
     def stop_listener(self):
