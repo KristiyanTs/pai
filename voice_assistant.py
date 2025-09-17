@@ -74,7 +74,8 @@ class AIVoiceAssistant:
         self.hotkey_manager = HotkeyManager(
             voice_callback=self.on_hotkey_pressed,
             settings_callback=self.on_settings_hotkey_pressed,
-            exit_callback=self._on_exit_requested
+            exit_callback=self._on_exit_requested,
+            settings_manager=self.settings_manager
         )
         
         # Connect to API

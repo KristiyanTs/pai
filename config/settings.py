@@ -7,7 +7,7 @@ Handles loading, saving, and managing configuration settings for the voice assis
 
 import os
 import json
-from typing import Optional
+from typing import Optional, Callable, List
 
 
 class SettingsManager:
@@ -25,6 +25,9 @@ class SettingsManager:
             "voice_speaker": "alloy"
         }
         self.settings = self.load_settings()
+        
+        # Settings change notification system
+        self.change_callbacks: List[Callable[[str, any], None]] = []
     
     def load_settings(self):
         """Load settings from file or create defaults"""
@@ -58,7 +61,39 @@ class SettingsManager:
     
     def set_setting(self, key, value):
         """Set a specific setting value"""
+        old_value = self.settings.get(key)
         self.settings[key] = value
+        
+        # Notify callbacks if value changed
+        if old_value != value:
+            self._notify_change(key, value)
+    
+    def add_change_callback(self, callback: Callable[[str, any], None]):
+        """Add a callback to be notified when settings change"""
+        self.change_callbacks.append(callback)
+    
+    def remove_change_callback(self, callback: Callable[[str, any], None]):
+        """Remove a change callback"""
+        if callback in self.change_callbacks:
+            self.change_callbacks.remove(callback)
+    
+    def _notify_change(self, key: str, value: any):
+        """Notify all registered callbacks of a setting change"""
+        for callback in self.change_callbacks:
+            try:
+                callback(key, value)
+            except Exception as e:
+                print(f"Error in settings change callback: {e}")
+    
+    def reload_settings(self):
+        """Reload settings from file and notify of changes"""
+        old_settings = self.settings.copy()
+        self.settings = self.load_settings()
+        
+        # Notify of any changes
+        for key, value in self.settings.items():
+            if old_settings.get(key) != value:
+                self._notify_change(key, value)
     
     def get_combined_instructions(self):
         """Get combined AI instructions from context, personality, and custom instructions"""

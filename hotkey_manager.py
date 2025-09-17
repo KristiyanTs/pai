@@ -17,7 +17,7 @@ from permissions import PermissionsHelper
 class HotkeyManager:
     """Manages global hotkeys and their event handling"""
     
-    def __init__(self, voice_callback: Callable, settings_callback: Callable, exit_callback: Callable):
+    def __init__(self, voice_callback: Callable, settings_callback: Callable, exit_callback: Callable, settings_manager=None):
         """
         Initialize the hotkey manager
         
@@ -25,10 +25,12 @@ class HotkeyManager:
             voice_callback: Function to call when voice hotkey is pressed
             settings_callback: Function to call when settings hotkey is pressed
             exit_callback: Function to call when exit hotkey is pressed
+            settings_manager: SettingsManager instance for hotkey configuration
         """
         self.voice_callback = voice_callback
         self.settings_callback = settings_callback
         self.exit_callback = exit_callback
+        self.settings_manager = settings_manager
         
         # State
         self.has_permissions = PermissionsHelper.check_accessibility_permissions()
@@ -38,10 +40,63 @@ class HotkeyManager:
         self.last_settings_hotkey_time = 0
         self.settings_hotkey_debounce = 0.5  # 500ms debounce
         
-        # Define hotkey combinations
+        # Define hotkey combinations (will be updated from settings)
         self.voice_hotkey = {keyboard.Key.cmd, keyboard.Key.shift, keyboard.KeyCode.from_char('v')}
         self.settings_hotkey = {keyboard.Key.cmd, keyboard.Key.shift, keyboard.KeyCode.from_char('z')}
         self.current_keys = set()
+        
+        # Register for settings changes if settings manager is provided
+        if self.settings_manager:
+            self.settings_manager.add_change_callback(self._on_settings_changed)
+            self._update_hotkeys_from_settings()
+    
+    def _on_settings_changed(self, key: str, value):
+        """Handle settings changes"""
+        if key in ["hotkey_combo", "settings_hotkey_combo"]:
+            print(f"Hotkey combination changed: {key} = {value}")
+            self._update_hotkeys_from_settings()
+    
+    def _update_hotkeys_from_settings(self):
+        """Update hotkey combinations from settings"""
+        if not self.settings_manager:
+            return
+            
+        # Update voice hotkey
+        voice_combo = self.settings_manager.get_setting('hotkey_combo', 'cmd+shift+v')
+        self.voice_hotkey = self._parse_hotkey_combo(voice_combo)
+        
+        # Update settings hotkey
+        settings_combo = self.settings_manager.get_setting('settings_hotkey_combo', 'cmd+shift+z')
+        self.settings_hotkey = self._parse_hotkey_combo(settings_combo)
+        
+        print(f"Updated hotkeys - Voice: {voice_combo}, Settings: {settings_combo}")
+    
+    def _parse_hotkey_combo(self, combo: str):
+        """Parse hotkey combination string into key set"""
+        keys = set()
+        combo_lower = combo.lower().replace('+', ' ')
+        
+        if 'cmd' in combo_lower or 'command' in combo_lower:
+            keys.add(keyboard.Key.cmd)
+        if 'ctrl' in combo_lower or 'control' in combo_lower:
+            keys.add(keyboard.Key.ctrl)
+        if 'alt' in combo_lower:
+            keys.add(keyboard.Key.alt)
+        if 'shift' in combo_lower:
+            keys.add(keyboard.Key.shift)
+        
+        # Extract the main key (last part)
+        parts = combo_lower.split()
+        if parts:
+            main_key = parts[-1]
+            if main_key in ['v', 'z', 'q', 'esc']:
+                keys.add(keyboard.KeyCode.from_char(main_key))
+            elif main_key == 'space':
+                keys.add(keyboard.Key.space)
+            elif main_key == 'enter':
+                keys.add(keyboard.Key.enter)
+        
+        return keys
     
     def check_permissions(self) -> bool:
         """Check if accessibility permissions are granted"""

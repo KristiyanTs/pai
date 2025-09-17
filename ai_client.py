@@ -40,6 +40,48 @@ class RealtimeAIClient:
         # WebSocket URL for OpenAI Realtime API - voice will be set dynamically
         self.base_ws_url = "wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01"
         self.ws_url = self.base_ws_url
+        
+        # Register for settings changes
+        self.settings_manager.add_change_callback(self._on_settings_changed)
+    
+    def _on_settings_changed(self, key: str, value):
+        """Handle settings changes"""
+        if key == "voice_speaker":
+            print(f"Voice speaker changed to: {value}")
+            # If we're connected, we need to reconnect with the new voice
+            if self.connected and not self.conversation_active:
+                print("Reconnecting with new voice speaker...")
+                self.disconnect()
+                # Small delay to ensure clean disconnect
+                threading.Timer(0.5, self.connect).start()
+        elif key in ["ai_context", "ai_personality", "custom_instructions"]:
+            print(f"AI instructions changed: {key}")
+            # If we're connected and not in a conversation, update the session
+            if self.connected and not self.conversation_active:
+                self._update_session_instructions()
+    
+    def _update_session_instructions(self):
+        """Update the session with new instructions"""
+        try:
+            # Get custom instructions from settings
+            custom_instructions = self.settings_manager.get_combined_instructions()
+            if not custom_instructions.strip():
+                # Fallback to default if no custom instructions
+                custom_instructions = "You are a helpful AI assistant. Keep responses concise and natural for voice conversation. Be friendly and engaging. Keep your responses brief and to the point."
+            
+            # Configure the session for voice conversation
+            session_config = {
+                "type": "session.update",
+                "session": {
+                    "type": "realtime",
+                    "instructions": custom_instructions
+                }
+            }
+            
+            print(f"Updating AI instructions: {custom_instructions[:100]}..." if len(custom_instructions) > 100 else f"Updating AI instructions: {custom_instructions}")
+            self.ws.send(json.dumps(session_config))
+        except Exception as e:
+            print(f"Error updating session instructions: {e}")
     
     def connect(self):
         """Connect to OpenAI Realtime API via WebSocket"""

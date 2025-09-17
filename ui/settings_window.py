@@ -370,6 +370,7 @@ class SettingsWindow:
                     selected_speaker_id = speaker_id
                     break
             
+            # Update settings (this will trigger change callbacks)
             self.settings_manager.set_setting('ai_context', context_value)
             self.settings_manager.set_setting('ai_personality', personality_value)
             self.settings_manager.set_setting('custom_instructions', instructions_value)
@@ -378,7 +379,7 @@ class SettingsWindow:
             
             # Save to file
             if self.settings_manager.save_settings():
-                messagebox.showinfo("Settings Saved", "Your AI assistant settings have been saved successfully!")
+                messagebox.showinfo("Settings Saved", "Your AI assistant settings have been saved and applied immediately!")
                 self.window.destroy()
             else:
                 messagebox.showerror("Error", "Failed to save settings. Please try again.")
