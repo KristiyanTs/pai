@@ -17,7 +17,7 @@ from permissions import PermissionsHelper
 class HotkeyManager:
     """Manages global hotkeys and their event handling"""
     
-    def __init__(self, voice_callback: Callable, settings_callback: Callable, exit_callback: Callable, settings_manager=None):
+    def __init__(self, voice_callback: Callable, settings_callback: Callable, exit_callback: Callable, cancel_callback: Callable = None, settings_manager=None):
         """
         Initialize the hotkey manager
         
@@ -25,11 +25,13 @@ class HotkeyManager:
             voice_callback: Function to call when voice hotkey is pressed
             settings_callback: Function to call when settings hotkey is pressed
             exit_callback: Function to call when exit hotkey is pressed
+            cancel_callback: Function to call when cancel hotkey is pressed (Esc)
             settings_manager: SettingsManager instance for hotkey configuration
         """
         self.voice_callback = voice_callback
         self.settings_callback = settings_callback
         self.exit_callback = exit_callback
+        self.cancel_callback = cancel_callback
         self.settings_manager = settings_manager
         
         # State
@@ -115,8 +117,15 @@ class HotkeyManager:
         def on_release(key):
             self.current_keys.discard(key)
             
-            # Exit on Ctrl+C or Cmd+Q
-            if key == keyboard.Key.esc or (key == keyboard.KeyCode.from_char('q') and keyboard.Key.cmd in self.current_keys):
+            # Cancel conversation on Esc
+            if key == keyboard.Key.esc:
+                if self.cancel_callback:
+                    print("Cancel hotkey detected")
+                    self.cancel_callback()
+                return True  # Continue listening
+            
+            # Exit on Cmd+Q
+            if key == keyboard.KeyCode.from_char('q') and keyboard.Key.cmd in self.current_keys:
                 print("Exit hotkey detected")
                 self.exit_callback()
                 return False
@@ -133,7 +142,7 @@ class HotkeyManager:
             else:
                 print("⚠️  Cmd+Shift+V and Cmd+Shift+Z hotkeys will not work without accessibility permissions")
                 print("💡 Grant permissions to enable global hotkey activation")
-            print("Press Cmd+Q or Esc to exit")
+            print("Press Esc to cancel conversation, Cmd+Q to exit")
             
             return self.listener
             

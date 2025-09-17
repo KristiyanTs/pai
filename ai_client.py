@@ -27,11 +27,12 @@ from audio_manager import AudioManager
 class RealtimeAIClient:
     """WebSocket client for OpenAI Realtime API"""
     
-    def __init__(self, api_key: str, audio_manager: AudioManager, overlay: VoiceAssistantOverlay, settings_manager: SettingsManager):
+    def __init__(self, api_key: str, audio_manager: AudioManager, overlay: VoiceAssistantOverlay, settings_manager: SettingsManager, voice_assistant=None):
         self.api_key = api_key
         self.audio_manager = audio_manager
         self.overlay = overlay
         self.settings_manager = settings_manager
+        self.voice_assistant = voice_assistant  # Reference to voice assistant for state management
         self.ws = None
         self.connected = False
         self.conversation_active = False
@@ -150,9 +151,6 @@ class RealtimeAIClient:
             event = json.loads(message)
             event_type = event.get("type")
             
-            # Debug: log unknown events only
-            # print(f"DEBUG: Received event: {event_type}")
-            
             if event_type == "session.created":
                 print("Session created successfully")
                 
@@ -166,11 +164,9 @@ class RealtimeAIClient:
                 self.overlay.update_status('processing')
                 
             elif event_type == "response.created":
-                # Stop recording when AI starts speaking to prevent feedback loop
                 self.audio_manager.stop_recording()
                 
             elif event_type == "response.audio.delta":
-                # Receive audio data from AI
                 audio_b64 = event.get("delta", "")
                 if audio_b64:
                     try:
@@ -181,7 +177,6 @@ class RealtimeAIClient:
                         print(f"Error processing audio delta: {e}")
                         
             elif event_type == "response.output_audio.delta":
-                # Try alternative event name
                 audio_b64 = event.get("delta", "")
                 if audio_b64:
                     try:
@@ -191,30 +186,31 @@ class RealtimeAIClient:
                     except Exception as e:
                         print(f"Error processing output audio delta: {e}")
                         
-            elif event_type == "response.audio_transcript.delta":
-                # Audio transcript
-                transcript = event.get("delta", "")
+            elif event_type == "response.output_audio_transcript.delta":
+                pass
+                    
+            elif event_type == "response.output_audio_transcript.done":
+                transcript = event.get("transcript", "")
                 if transcript:
-                    print(f"AI transcript: {transcript}")
+                    print(f"🤖 AI: {transcript}")
+                    
+            elif event_type == "conversation.item.input_audio_transcription.completed":
+                transcript = event.get("transcript", "")
+                if transcript:
+                    print(f"👤 User: {transcript}")
                     
             elif event_type == "response.done":
-                # Mark response as finished and start checking for audio completion
                 self.audio_manager.response_finished = True
                 if not self.conversation_ending and self.conversation_active:
                     self._check_audio_completion()
                 
             elif event_type == "error":
                 error_msg = event.get("error", {}).get("message", "Unknown error")
-                # Ignore cancellation errors - they're expected when ending conversations
                 if "cancellation failed" not in error_msg.lower():
                     print(f"API Error: {error_msg}")
                     self.overlay.update_status('error')
                     if not self.conversation_ending:
                         threading.Timer(2.0, self._end_conversation).start()
-            
-            else:
-                # Silently ignore unknown events for cleaner output
-                pass
                 
         except Exception as e:
             print(f"Error handling message: {e}")
@@ -300,6 +296,37 @@ class RealtimeAIClient:
         # Start checking
         check_buffer()
     
+    def cancel_conversation(self):
+        """Cancel the current conversation immediately"""
+        if not self.conversation_active:
+            return
+            
+        print("Canceling conversation...")
+        self.conversation_ending = True
+        self.conversation_active = False
+        
+        # Reset voice assistant conversation state
+        if self.voice_assistant:
+            self.voice_assistant.conversation_in_progress = False
+        
+        # Stop audio immediately
+        self.audio_manager.stop_recording()
+        self.audio_manager.stop_playback()
+        
+        # Send cancel request to stop AI response
+        try:
+            cancel_event = {"type": "response.cancel"}
+            self.ws.send(json.dumps(cancel_event))
+            print("Sent cancel request to stop AI response")
+        except Exception as e:
+            print(f"Error sending cancel request: {e}")
+        
+        # Hide overlay (thread-safe)
+        self.overlay.hide_overlay()
+        
+        # Reset ending flag after a delay
+        threading.Timer(1.0, lambda: setattr(self, 'conversation_ending', False)).start()
+    
     def _end_conversation(self):
         """End the current conversation"""
         if self.conversation_ending:
@@ -308,6 +335,9 @@ class RealtimeAIClient:
         self.conversation_ending = True
         self.conversation_active = False
         
+        # Reset voice assistant conversation state
+        if self.voice_assistant:
+            self.voice_assistant.conversation_in_progress = False
         
         # Stop audio
         self.audio_manager.stop_recording()

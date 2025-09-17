@@ -60,7 +60,7 @@ class AIVoiceAssistant:
         self.settings_manager = SettingsManager()
         self.overlay = VoiceAssistantOverlay()
         self.audio_manager = AudioManager()
-        self.ai_client = RealtimeAIClient(self.api_key, self.audio_manager, self.overlay, self.settings_manager)
+        self.ai_client = RealtimeAIClient(self.api_key, self.audio_manager, self.overlay, self.settings_manager, self)
         self.settings_window = None
         
         # Queue for thread-safe GUI operations
@@ -75,6 +75,7 @@ class AIVoiceAssistant:
             voice_callback=self.on_hotkey_pressed,
             settings_callback=self.on_settings_hotkey_pressed,
             exit_callback=self._on_exit_requested,
+            cancel_callback=self.on_cancel_pressed,
             settings_manager=self.settings_manager
         )
         
@@ -99,6 +100,15 @@ class AIVoiceAssistant:
         """Handle settings hotkey press (Cmd+Shift+Z)"""
         # Queue the settings window opening for the main thread
         self.gui_queue.put('show_settings')
+    
+    def on_cancel_pressed(self):
+        """Handle cancel hotkey press (Esc) - stop current conversation"""
+        if self.conversation_in_progress or self.ai_client.conversation_active:
+            print("Canceling current conversation...")
+            self.ai_client.cancel_conversation()
+            self.conversation_in_progress = False
+        else:
+            print("No active conversation to cancel")
     
     def _on_exit_requested(self):
         """Handle exit request from hotkey"""
@@ -156,7 +166,8 @@ class AIVoiceAssistant:
             time.sleep(2)
             self.overlay.hide_overlay()
         finally:
-            self.conversation_in_progress = False
+            # Don't reset conversation_in_progress here - let AI client manage it
+            pass
     
     
     def run(self):
