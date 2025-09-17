@@ -23,6 +23,9 @@ from ui.overlay import VoiceAssistantOverlay
 # Import from audio_manager module
 from audio_manager import AudioManager
 
+# Import conversation memory
+from conversation_memory import ConversationMemory
+
 
 class RealtimeAIClient:
     """WebSocket client for OpenAI Realtime API"""
@@ -42,6 +45,12 @@ class RealtimeAIClient:
         self.base_ws_url = "wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01"
         self.ws_url = self.base_ws_url
         
+        # Initialize conversation memory
+        self.conversation_memory = ConversationMemory(
+            max_messages=settings_manager.get_setting('conversation_memory_max_messages', 50),
+            max_age_hours=settings_manager.get_setting('conversation_memory_max_age_hours', 24)
+        )
+        
         # Register for settings changes
         self.settings_manager.add_change_callback(self._on_settings_changed)
     
@@ -60,6 +69,13 @@ class RealtimeAIClient:
             # If we're connected and not in a conversation, update the session
             if self.connected and not self.conversation_active:
                 self._update_session_instructions()
+        elif key in ["conversation_memory_max_messages", "conversation_memory_max_age_hours"]:
+            print(f"Conversation memory settings changed: {key}")
+            # Update conversation memory settings
+            if key == "conversation_memory_max_messages":
+                self.conversation_memory.max_messages = value
+            elif key == "conversation_memory_max_age_hours":
+                self.conversation_memory.max_age_hours = value
     
     def _update_session_instructions(self):
         """Update the session with new instructions"""
@@ -69,6 +85,12 @@ class RealtimeAIClient:
             if not custom_instructions.strip():
                 # Fallback to default if no custom instructions
                 custom_instructions = "You are a helpful AI assistant. Keep responses concise and natural for voice conversation. Be friendly and engaging. Keep your responses brief and to the point."
+            
+            # Add conversation context if memory is enabled
+            if self.settings_manager.get_setting('conversation_memory_enabled', True):
+                context = self.conversation_memory.get_context_string(max_count=10)
+                if context:
+                    custom_instructions = f"{custom_instructions}\n\n{context}"
             
             # Configure the session for voice conversation
             session_config = {
@@ -134,6 +156,12 @@ class RealtimeAIClient:
             # Fallback to default if no custom instructions
             custom_instructions = "You are a helpful AI assistant. Keep responses concise and natural for voice conversation. Be friendly and engaging. Keep your responses brief and to the point."
         
+        # Add conversation context if memory is enabled
+        if self.settings_manager.get_setting('conversation_memory_enabled', True):
+            context = self.conversation_memory.get_context_string(max_count=10)
+            if context:
+                custom_instructions = f"{custom_instructions}\n\n{context}"
+        
         # Configure the session for voice conversation
         session_config = {
             "type": "session.update",
@@ -193,11 +221,17 @@ class RealtimeAIClient:
                 transcript = event.get("transcript", "")
                 if transcript:
                     print(f"🤖 AI: {transcript}")
+                    # Store AI response in conversation memory
+                    if self.settings_manager.get_setting('conversation_memory_enabled', True):
+                        self.conversation_memory.add_message("assistant", transcript)
                     
             elif event_type == "conversation.item.input_audio_transcription.completed":
                 transcript = event.get("transcript", "")
                 if transcript:
                     print(f"👤 User: {transcript}")
+                    # Store user message in conversation memory
+                    if self.settings_manager.get_setting('conversation_memory_enabled', True):
+                        self.conversation_memory.add_message("user", transcript)
                     
             elif event_type == "response.done":
                 self.audio_manager.response_finished = True
@@ -362,3 +396,16 @@ class RealtimeAIClient:
         self.connected = False
         if self.ws:
             self.ws.close()
+    
+    def clear_conversation_memory(self):
+        """Clear all conversation memory"""
+        self.conversation_memory.clear_memory()
+        print("Conversation memory cleared")
+    
+    def get_conversation_memory_stats(self):
+        """Get conversation memory statistics"""
+        return self.conversation_memory.get_memory_stats()
+    
+    def export_conversation_history(self, output_file: str):
+        """Export conversation history to a file"""
+        return self.conversation_memory.export_conversation(output_file)

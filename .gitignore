@@ -169,6 +169,9 @@ secrets.json
 # Settings files
 assistant_settings.json
 
+# Conversation memory
+conversation_memory.json
+
 # Model files (if any)
 *.model
 *.pkl

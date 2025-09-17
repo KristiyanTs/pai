@@ -30,8 +30,8 @@ class SettingsWindow:
         self.window = tk.Toplevel()
         
         self.window.title("Settings")
-        self.window.geometry("520x500")
-        self.window.minsize(500, 480)
+        self.window.geometry("520x600")
+        self.window.minsize(500, 580)
         self.window.resizable(True, True)
         
         # Configure modern dark theme
@@ -70,6 +70,7 @@ class SettingsWindow:
         # Settings sections
         self.create_context_section(main_frame)
         self.create_personality_section(main_frame)
+        self.create_memory_section(main_frame)
         self.create_advanced_section(main_frame)
         
         # Action buttons
@@ -180,6 +181,93 @@ class SettingsWindow:
             self.personality_text.delete('1.0', tk.END)
             self.personality_text.insert('1.0', current_personality)
             self.personality_text.config(fg='#ffffff')
+    
+    def create_memory_section(self, parent):
+        """Create the conversation memory configuration section"""
+        section_frame = self.create_section_frame(parent, "Conversation Memory")
+        
+        # Memory enabled toggle
+        self.memory_enabled_var = tk.BooleanVar()
+        self.memory_enabled_var.set(self.settings_manager.get_setting('conversation_memory_enabled', True))
+        
+        memory_check = tk.Checkbutton(
+            section_frame,
+            text="Remember conversation history",
+            variable=self.memory_enabled_var,
+            font=('Inter', 11),
+            fg='#ffffff',
+            bg='#0f0f0f',
+            selectcolor='#0a84ff',
+            activebackground='#0f0f0f',
+            activeforeground='#ffffff',
+            relief='flat',
+            bd=0
+        )
+        memory_check.pack(anchor='w', pady=(0, 8))
+        
+        # Max messages setting
+        messages_frame = tk.Frame(section_frame, bg='#0f0f0f')
+        messages_frame.pack(fill='x', pady=(0, 8))
+        
+        messages_label = tk.Label(
+            messages_frame,
+            text="Max messages to remember:",
+            font=('Inter', 10),
+            fg='#8e8e93',
+            bg='#0f0f0f'
+        )
+        messages_label.pack(anchor='w')
+        
+        self.max_messages_var = tk.StringVar()
+        current_max_messages = self.settings_manager.get_setting('conversation_memory_max_messages', 50)
+        self.max_messages_var.set(str(current_max_messages))
+        
+        messages_entry = tk.Entry(
+            messages_frame,
+            textvariable=self.max_messages_var,
+            font=('JetBrains Mono', 10),
+            fg='#ffffff',
+            bg='#1c1c1e',
+            insertbackground='#ffffff',
+            selectbackground='#0a84ff',
+            selectforeground='#ffffff',
+            relief='flat',
+            bd=1,
+            width=10
+        )
+        messages_entry.pack(anchor='w', pady=(2, 0))
+        
+        # Max age setting
+        age_frame = tk.Frame(section_frame, bg='#0f0f0f')
+        age_frame.pack(fill='x')
+        
+        age_label = tk.Label(
+            age_frame,
+            text="Max age (hours):",
+            font=('Inter', 10),
+            fg='#8e8e93',
+            bg='#0f0f0f'
+        )
+        age_label.pack(anchor='w')
+        
+        self.max_age_var = tk.StringVar()
+        current_max_age = self.settings_manager.get_setting('conversation_memory_max_age_hours', 24)
+        self.max_age_var.set(str(current_max_age))
+        
+        age_entry = tk.Entry(
+            age_frame,
+            textvariable=self.max_age_var,
+            font=('JetBrains Mono', 10),
+            fg='#ffffff',
+            bg='#1c1c1e',
+            insertbackground='#ffffff',
+            selectbackground='#0a84ff',
+            selectforeground='#ffffff',
+            relief='flat',
+            bd=1,
+            width=10
+        )
+        age_entry.pack(anchor='w', pady=(2, 0))
     
     def create_advanced_section(self, parent):
         """Create the advanced settings section"""
@@ -354,11 +442,24 @@ class SettingsWindow:
                     selected_speaker_id = speaker_id
                     break
             
+            # Validate and convert memory settings
+            try:
+                max_messages = int(self.max_messages_var.get())
+                max_age = int(self.max_age_var.get())
+                if max_messages < 1 or max_age < 1:
+                    raise ValueError("Values must be positive")
+            except ValueError:
+                messagebox.showerror("Invalid Input", "Max messages and max age must be positive integers.")
+                return
+            
             # Update settings (this will trigger change callbacks)
             self.settings_manager.set_setting('ai_context', context_value)
             self.settings_manager.set_setting('ai_personality', personality_value)
             self.settings_manager.set_setting('voice_activation_enabled', self.voice_activation_var.get())
             self.settings_manager.set_setting('voice_speaker', selected_speaker_id)
+            self.settings_manager.set_setting('conversation_memory_enabled', self.memory_enabled_var.get())
+            self.settings_manager.set_setting('conversation_memory_max_messages', max_messages)
+            self.settings_manager.set_setting('conversation_memory_max_age_hours', max_age)
             
             # Save to file
             if self.settings_manager.save_settings():
@@ -391,6 +492,11 @@ class SettingsWindow:
         self._reset_text_field(self.personality_text, self.settings_manager.default_settings['ai_personality'])
         
         self.voice_activation_var.set(self.settings_manager.default_settings['voice_activation_enabled'])
+        
+        # Reset memory settings
+        self.memory_enabled_var.set(self.settings_manager.default_settings['conversation_memory_enabled'])
+        self.max_messages_var.set(str(self.settings_manager.default_settings['conversation_memory_max_messages']))
+        self.max_age_var.set(str(self.settings_manager.default_settings['conversation_memory_max_age_hours']))
         
         # Reset speaker to default
         default_speaker = self.settings_manager.default_settings['voice_speaker']

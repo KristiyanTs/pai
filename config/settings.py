@@ -21,7 +21,10 @@ class SettingsManager:
             "voice_activation_enabled": True,
             "hotkey_combo": "cmd+shift+v",
             "settings_hotkey_combo": "cmd+shift+z",
-            "voice_speaker": "alloy"
+            "voice_speaker": "alloy",
+            "conversation_memory_enabled": True,
+            "conversation_memory_max_messages": 50,
+            "conversation_memory_max_age_hours": 24
         }
         self.settings = self.load_settings()
         

@@ -6,6 +6,7 @@ A system-wide AI voice assistant powered by OpenAI's Realtime API. Press a globa
 
 - **Global Hotkey Activation**: Press `Cmd + Shift + V` from anywhere to start a conversation
 - **Real-time Voice Interaction**: Natural speech-to-speech conversations using OpenAI's Realtime API
+- **Conversation Memory**: AI remembers previous conversations for context continuity
 - **Speech-to-Text Transcription**: All spoken audio is transcribed and printed in the terminal using OpenAI Whisper
 - **Minimal UI Overlay**: Transparent, non-intrusive status indicator
 - **System-wide Access**: Works from any application or desktop
@@ -78,6 +79,29 @@ A system-wide AI voice assistant powered by OpenAI's Realtime API. Press a globa
 6. **AI response**: The AI's response is also transcribed and shown as "🤖 AI: ..."
 7. **Conversation ends**: The overlay disappears when the AI finishes speaking
 
+### Conversation Memory
+
+The AI assistant now remembers your previous conversations to provide better context and continuity:
+
+- **Automatic Memory**: Previous conversations are automatically saved and included as context
+- **Smart Context**: The AI receives the most recent conversation history to understand references
+- **Configurable**: Memory settings can be adjusted through the settings window (`Cmd + Shift + Z`)
+- **Privacy-Safe**: Conversation history is stored locally on your machine
+- **Auto-Cleanup**: Old conversations are automatically removed based on age and count limits
+
+**Memory Settings:**
+- **Enable/Disable**: Toggle conversation memory on or off
+- **Max Messages**: Set how many messages to remember (default: 50)
+- **Max Age**: Set how long to keep conversations in hours (default: 24)
+
+### Accessing Settings
+
+Press `Cmd + Shift + Z` from anywhere to open the settings window where you can:
+- Configure AI personality and context
+- Adjust conversation memory settings
+- Change voice speaker
+- Toggle voice activation
+
 ### Exiting the Assistant
 
 - Press `Cmd + Q` or `Esc` while the terminal is focused
@@ -91,7 +115,9 @@ The voice assistant consists of several key components:
 
 - **VoiceAssistantOverlay**: Transparent tkinter UI for status display
 - **AudioManager**: Handles microphone input and speaker output using sounddevice, includes speech-to-text transcription
-- **RealtimeAIClient**: WebSocket client for OpenAI's Realtime API
+- **RealtimeAIClient**: WebSocket client for OpenAI's Realtime API with conversation memory integration
+- **ConversationMemory**: Manages persistent conversation history for context continuity
+- **SettingsManager**: Handles configuration and settings persistence
 - **AIVoiceAssistant**: Main orchestrator that coordinates all components
 
 ### Speech-to-Text Transcription
