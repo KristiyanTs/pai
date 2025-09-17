@@ -166,6 +166,9 @@ logs/
 config.ini
 secrets.json
 
+# Settings files
+assistant_settings.json
+
 # Model files (if any)
 *.model
 *.pkl
