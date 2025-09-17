@@ -243,6 +243,9 @@ class RealtimeAIClient:
             except Empty:
                 break
         
+        # Clear transcription buffer for fresh start
+        self.audio_manager.clear_transcription_buffer()
+        
         # Send input_audio_buffer.clear to reset server state
         try:
             clear_event = {"type": "input_audio_buffer.clear"}

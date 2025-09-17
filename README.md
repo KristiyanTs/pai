@@ -6,6 +6,7 @@ A system-wide AI voice assistant powered by OpenAI's Realtime API. Press a globa
 
 - **Global Hotkey Activation**: Press `Cmd + Shift + V` from anywhere to start a conversation
 - **Real-time Voice Interaction**: Natural speech-to-speech conversations using OpenAI's Realtime API
+- **Speech-to-Text Transcription**: All spoken audio is transcribed and printed in the terminal using OpenAI Whisper
 - **Minimal UI Overlay**: Transparent, non-intrusive status indicator
 - **System-wide Access**: Works from any application or desktop
 - **Dark Mode Interface**: Modern, sleek design that matches system aesthetics
@@ -72,8 +73,10 @@ A system-wide AI voice assistant powered by OpenAI's Realtime API. Press a globa
 1. **Press `Cmd + Shift + V`** from anywhere on your Mac
 2. **See the overlay**: A small "🎤 Listening..." indicator appears
 3. **Start speaking**: Talk naturally to the AI assistant
-4. **Wait for response**: The overlay will show "🤔 Thinking..." then "🗣️ Speaking..."
-5. **Conversation ends**: The overlay disappears when the AI finishes speaking
+4. **See transcription**: Your speech is transcribed and printed in the terminal with "🎤 Transcription: ..."
+5. **Wait for response**: The overlay will show "🤔 Thinking..." then "🗣️ Speaking..."
+6. **AI response**: The AI's response is also transcribed and shown as "🤖 AI: ..."
+7. **Conversation ends**: The overlay disappears when the AI finishes speaking
 
 ### Exiting the Assistant
 
@@ -87,9 +90,18 @@ A system-wide AI voice assistant powered by OpenAI's Realtime API. Press a globa
 The voice assistant consists of several key components:
 
 - **VoiceAssistantOverlay**: Transparent tkinter UI for status display
-- **AudioManager**: Handles microphone input and speaker output using sounddevice
+- **AudioManager**: Handles microphone input and speaker output using sounddevice, includes speech-to-text transcription
 - **RealtimeAIClient**: WebSocket client for OpenAI's Realtime API
 - **AIVoiceAssistant**: Main orchestrator that coordinates all components
+
+### Speech-to-Text Transcription
+
+The assistant now includes automatic transcription of all spoken audio using OpenAI's Whisper models:
+
+- **Model**: Uses `gpt-4o-transcribe` for high-quality transcription
+- **Real-time Processing**: Audio is transcribed after you stop speaking
+- **Terminal Output**: Transcriptions are printed with clear labels
+- **Automatic Cleanup**: Temporary audio files are automatically deleted
 
 ### Audio Configuration
 

@@ -59,7 +59,7 @@ class AIVoiceAssistant:
         # Initialize components
         self.settings_manager = SettingsManager()
         self.overlay = VoiceAssistantOverlay()
-        self.audio_manager = AudioManager()
+        self.audio_manager = AudioManager(api_key=self.api_key)
         self.ai_client = RealtimeAIClient(self.api_key, self.audio_manager, self.overlay, self.settings_manager, self)
         self.settings_window = None
         

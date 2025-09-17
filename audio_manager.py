@@ -10,13 +10,17 @@ import threading
 import time
 import numpy as np
 import sounddevice as sd
+import tempfile
+import os
+import wave
 from queue import Queue, Empty
+from openai import OpenAI
 
 
 class AudioManager:
     """Handles audio input/output operations"""
     
-    def __init__(self):
+    def __init__(self, api_key: str = None):
         self.sample_rate = 24000  # OpenAI Realtime API sample rate
         self.channels = 1
         self.dtype = np.int16
@@ -34,6 +38,12 @@ class AudioManager:
         self.audio_buffer = np.array([], dtype=np.float32)
         self.buffer_lock = threading.Lock()
         self.response_finished = False
+        
+        # For transcription
+        self.openai_client = OpenAI(api_key=api_key) if api_key else None
+        self.transcription_buffer = []
+        self.transcription_lock = threading.Lock()
+        self.enable_transcription = True
     
     def start_recording(self):
         """Start recording audio from microphone"""
@@ -49,6 +59,11 @@ class AudioManager:
                 # Convert float32 to int16 and put in queue
                 audio_data = (indata[:, 0] * 32767).astype(np.int16)
                 self.input_queue.put(audio_data.tobytes())
+                
+                # Also store audio for transcription if enabled
+                if self.enable_transcription and self.openai_client:
+                    with self.transcription_lock:
+                        self.transcription_buffer.append(audio_data)
         
         try:
             self.input_stream = sd.InputStream(
@@ -70,6 +85,10 @@ class AudioManager:
             self.input_stream.stop()
             self.input_stream.close()
             self.input_stream = None
+            
+        # Transcribe the recorded audio if we have any
+        if self.enable_transcription and self.openai_client:
+            threading.Thread(target=self._transcribe_recorded_audio, daemon=True).start()
     
     def start_playback(self):
         """Start audio playback thread"""
@@ -163,3 +182,59 @@ class AudioManager:
         """Add audio data to playback queue with proper sequencing"""
         # Ensure audio data is properly queued in order
         self.output_queue.put(audio_bytes)
+    
+    def _transcribe_recorded_audio(self):
+        """Transcribe the recorded audio buffer using OpenAI Whisper"""
+        try:
+            with self.transcription_lock:
+                if not self.transcription_buffer:
+                    return
+                
+                # Combine all audio chunks
+                audio_data = np.concatenate(self.transcription_buffer)
+                self.transcription_buffer.clear()
+            
+            # Skip if audio is too short (less than 0.5 seconds)
+            if len(audio_data) < self.sample_rate * 0.5:
+                return
+                
+            # Create a temporary WAV file
+            with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as temp_file:
+                temp_path = temp_file.name
+                
+                # Write audio data to WAV file
+                with wave.open(temp_path, 'wb') as wav_file:
+                    wav_file.setnchannels(self.channels)
+                    wav_file.setsampwidth(2)  # 16-bit audio
+                    wav_file.setframerate(self.sample_rate)
+                    wav_file.writeframes(audio_data.tobytes())
+            
+            try:
+                # Transcribe using OpenAI Whisper
+                with open(temp_path, 'rb') as audio_file:
+                    transcription = self.openai_client.audio.transcriptions.create(
+                        model="gpt-4o-transcribe",
+                        file=audio_file,
+                        response_format="text"
+                    )
+                
+                # Print the transcription
+                if transcription and transcription.strip():
+                    print(f"🎤 Transcription: {transcription.strip()}")
+                    
+            finally:
+                # Clean up temporary file
+                if os.path.exists(temp_path):
+                    os.unlink(temp_path)
+                    
+        except Exception as e:
+            print(f"Error transcribing audio: {e}")
+    
+    def enable_audio_transcription(self, enable: bool = True):
+        """Enable or disable audio transcription"""
+        self.enable_transcription = enable
+    
+    def clear_transcription_buffer(self):
+        """Clear the transcription buffer"""
+        with self.transcription_lock:
+            self.transcription_buffer.clear()
