@@ -185,21 +185,6 @@ class SettingsWindow:
         """Create the advanced settings section"""
         section_frame = self.create_section_frame(parent, "Advanced")
         
-        # Custom instructions
-        self.custom_instructions_text = self.create_modern_text_field(
-            section_frame,
-            "Additional instructions (optional)",
-            height=2
-        )
-        self.custom_instructions_text.pack(fill='x', pady=(0, 12))
-        
-        # Load existing value
-        current_instructions = self.settings_manager.get_setting('custom_instructions', '')
-        if current_instructions:
-            self.custom_instructions_text.delete('1.0', tk.END)
-            self.custom_instructions_text.insert('1.0', current_instructions)
-            self.custom_instructions_text.config(fg='#ffffff')
-        
         # Voice speaker selection
         speaker_frame = tk.Frame(section_frame, bg='#0f0f0f')
         speaker_frame.pack(fill='x', pady=(0, 12))
@@ -360,7 +345,6 @@ class SettingsWindow:
             # Update settings from UI (handle placeholders)
             context_value = self._get_text_value(self.context_text)
             personality_value = self._get_text_value(self.personality_text)
-            instructions_value = self._get_text_value(self.custom_instructions_text)
             
             # Get selected speaker ID from the combobox
             selected_speaker_name = self.speaker_var.get()
@@ -373,7 +357,6 @@ class SettingsWindow:
             # Update settings (this will trigger change callbacks)
             self.settings_manager.set_setting('ai_context', context_value)
             self.settings_manager.set_setting('ai_personality', personality_value)
-            self.settings_manager.set_setting('custom_instructions', instructions_value)
             self.settings_manager.set_setting('voice_activation_enabled', self.voice_activation_var.get())
             self.settings_manager.set_setting('voice_speaker', selected_speaker_id)
             
@@ -406,7 +389,6 @@ class SettingsWindow:
         # Reset text fields with proper placeholder handling
         self._reset_text_field(self.context_text, self.settings_manager.default_settings['ai_context'])
         self._reset_text_field(self.personality_text, self.settings_manager.default_settings['ai_personality'])
-        self._reset_text_field(self.custom_instructions_text, self.settings_manager.default_settings['custom_instructions'])
         
         self.voice_activation_var.set(self.settings_manager.default_settings['voice_activation_enabled'])
         

@@ -54,7 +54,7 @@ class RealtimeAIClient:
                 self.disconnect()
                 # Small delay to ensure clean disconnect
                 threading.Timer(0.5, self.connect).start()
-        elif key in ["ai_context", "ai_personality", "custom_instructions"]:
+        elif key in ["ai_context", "ai_personality"]:
             print(f"AI instructions changed: {key}")
             # If we're connected and not in a conversation, update the session
             if self.connected and not self.conversation_active:

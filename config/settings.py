@@ -18,7 +18,6 @@ class SettingsManager:
         self.default_settings = {
             "ai_context": "You are a helpful AI assistant. Keep responses concise and natural for voice conversation.",
             "ai_personality": "Be friendly, engaging, and professional. Keep your responses brief and to the point.",
-            "custom_instructions": "",
             "voice_activation_enabled": True,
             "hotkey_combo": "cmd+shift+v",
             "settings_hotkey_combo": "cmd+shift+z",
@@ -96,7 +95,7 @@ class SettingsManager:
                 self._notify_change(key, value)
     
     def get_combined_instructions(self):
-        """Get combined AI instructions from context, personality, and custom instructions"""
+        """Get combined AI instructions from context and personality"""
         instructions_parts = []
         
         if self.settings.get("ai_context"):
@@ -104,8 +103,5 @@ class SettingsManager:
         
         if self.settings.get("ai_personality"):
             instructions_parts.append(self.settings["ai_personality"])
-        
-        if self.settings.get("custom_instructions"):
-            instructions_parts.append(self.settings["custom_instructions"])
         
         return " ".join(instructions_parts)
